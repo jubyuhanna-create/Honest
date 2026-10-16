@@ -2,6 +2,8 @@
 
 **Stop Claude from cheating.**
 
+![honest blocking Claude from skipping a test](assets/demo.gif)
+
 When an AI agent can't fix a failing test, it sometimes makes the failure disappear instead:
 it skips the test, deletes the assertion, adds `@ts-ignore`, or hardcodes the answer.
 Everything turns green. Nothing actually works.
@@ -86,6 +88,10 @@ touch .honest-strict
 ```
 
 Put that file in your project root (or set `HONEST_STRICT=1`). Now only you can add a suppression, by editing the file yourself.
+
+### Claude can't turn it off
+
+`honest` also blocks Claude from deleting `.honest-strict`, disabling the plugin, editing its hook, or switching it off in settings. Only you can do that.
 
 ## Why this exists
 

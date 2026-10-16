@@ -33,7 +33,41 @@ const BASH = [
   { name: 'forced a failing test run to look successful', re: /\b(jest|vitest|pytest|go test|cargo test|npm (run )?test)\b[^\n]*\|\|\s*(true|exit 0|:)\s*$/ },
 ];
 
-const ASSERT = /\b(assert\w*|expect)\s*[\(.]|\bassert\s|\bshould\.|\bt\.(Error|Fatal)/g;
+// Claude must never be able to switch honest off. These cannot be allowed.
+const STRICT_FILE = /\.honest-strict\b/i;
+const REMOVE = /\b(rm|del|erase|rd|rmdir|unlink|mv|move|ren|rename|remove-item|ri|move-item|rename-item|clear-content|set-content|out-file|truncate|shred|git\s+rm|git\s+mv)\b|>\s*[^\s]*\.honest-strict/i;
+const PLUGIN_PATH = /[\/\\]plugins[\/\\][^\n]*honest/i;
+const SETTINGS = /[\/\\]\.claude[\/\\]settings(\.local)?\.json$/i;
+
+function tamper(what, detail) {
+  process.stderr.write(
+`honest: BLOCKED — ${what}.
+${detail ? detail + '\n' : ''}
+Only the user can turn honest off or change its settings. This cannot be
+approved with "honest: allow". If you think honest is in the way, stop and
+tell the user why.
+`);
+  process.exit(2);
+}
+
+function checkTamper(tool, t, file) {
+  if (tool === 'Bash') {
+    const cmd = t.command || '';
+    if (STRICT_FILE.test(cmd) && REMOVE.test(cmd)) tamper('tried to remove or change .honest-strict', cmd);
+    if (strict && /\bgit\s+clean\b/i.test(cmd)) tamper('git clean would delete .honest-strict', cmd);
+    if (/\bplugin\s+(disable|uninstall|remove)\b[^\n]*honest/i.test(cmd)) tamper('tried to disable the honest plugin', cmd);
+    if (PLUGIN_PATH.test(cmd) && REMOVE.test(cmd)) tamper('tried to change honest itself', cmd);
+    if (SETTINGS.test(cmd.split(/\s+/).find((w) => SETTINGS.test(w)) || '') && /honest/i.test(cmd)) tamper('tried to change honest in Claude settings', cmd);
+    return;
+  }
+  if (!['Write', 'Edit', 'MultiEdit'].includes(tool)) return;
+  const text = [t.content, t.new_string, ...(t.edits || []).map((e) => e.new_string)].join('\n');
+  if (STRICT_FILE.test(path.basename(file)) && tool !== 'Write') tamper('tried to edit .honest-strict', file);
+  if (PLUGIN_PATH.test(file)) tamper('tried to edit honest itself', file);
+  if (SETTINGS.test(file) && /honest/i.test(text)) tamper('tried to change honest in Claude settings', file);
+}
+
+const ASSERT =/\b(assert\w*|expect)\s*[\(.]|\bassert\s|\bshould\.|\bt\.(Error|Fatal)/g;
 const count = (s) => (s.match(ASSERT) || []).length;
 
 let strict = false;
@@ -111,6 +145,7 @@ process.stdin.on('end', () => {
   const root = process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
   strict = /^(1|true|yes)$/i.test(process.env.HONEST_STRICT || '') ||
     fs.existsSync(path.join(root, '.honest-strict'));
+  checkTamper(tool, t, file);
 
   if (tool === 'Write') {
     if (TEST_FILE.test(file) && !(t.content || '').trim()) block('emptied a test file', file);

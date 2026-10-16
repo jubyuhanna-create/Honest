@@ -85,6 +85,24 @@ const allowLine = W('a.ts', 'const x = window as any // honest: allow lib has no
   extra.push(['strict mode (.honest-strict file) blocks allow', r.status === 2]);
   fs.rmSync(dir, { recursive: true });
 }
+// Claude can never switch honest off.
+const TAMPER = [
+  ['rm .honest-strict', B('rm .honest-strict')],
+  ['del .honest-strict (Windows)', B('del C:\\Users\\me\\.honest-strict')],
+  ['Remove-Item .honest-strict (PowerShell)', B('Remove-Item .honest-strict')],
+  ['rename .honest-strict', B('mv .honest-strict .old')],
+  ['edit .honest-strict', E('/p/.honest-strict', '', 'off')],
+  ['disable plugin', B('claude plugin disable honest@honest')],
+  ['edit plugin hook', E('/home/me/.claude/plugins/cache/honest/hooks/honest.js', 'a', 'b')],
+  ['turn off in settings', E('/home/me/.claude/settings.json', '"honest@honest": true', '"honest@honest": false')],
+  ['tamper ignores honest: allow', B('rm .honest-strict # honest: allow')],
+];
+for (const [name, [tool, input]] of TAMPER) {
+  const r = call(tool, input);
+  extra.push([`blocks tamper: ${name}`, r.status === 2 && /Only the user/.test(r.stderr)]);
+}
+extra.push(['allows creating .honest-strict', run(...B('touch .honest-strict')) === 0 && run(...W('/p/.honest-strict', '')) === 0]);
+extra.push(['allows normal settings edit', run(...E('/home/me/.claude/settings.json', '"model": "a"', '"model": "b"')) === 0]);
 for (const [name, ok] of extra) {
   if (!ok) fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
