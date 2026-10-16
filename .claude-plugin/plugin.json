@@ -1,0 +1,10 @@
+{
+  "name": "honest",
+  "version": "1.1.0",
+  "description": "Stops Claude from cheating to make things look fixed: no skipped tests, no silenced errors, no hardcoded answers.",
+  "author": { "name": "Yuhanna Jubran", "url": "https://github.com/jubyuhanna-create" },
+  "homepage": "https://github.com/jubyuhanna-create/Honest",
+  "repository": "https://github.com/jubyuhanna-create/Honest",
+  "license": "MIT",
+  "keywords": ["claude-code", "skill", "hooks", "testing", "reward-hacking", "code-quality"]
+}

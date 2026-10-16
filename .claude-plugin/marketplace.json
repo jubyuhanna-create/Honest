@@ -1,0 +1,11 @@
+{
+  "name": "honest",
+  "owner": { "name": "Yuhanna Jubran", "url": "https://github.com/jubyuhanna-create" },
+  "plugins": [
+    {
+      "name": "honest",
+      "source": "./",
+      "description": "Stops Claude from cheating to make things look fixed."
+    }
+  ]
+}
